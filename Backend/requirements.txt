@@ -13,12 +13,12 @@ idna==3.11
 kiwisolver==1.4.9
 matplotlib==3.10.8
 numpy==2.4.2
-opencv-python==4.13.0.92
+opencv-python-headless
 packaging==26.0
 pillow==12.1.1
 pydantic==2.12.5
 pydantic_core==2.41.5
-pygame==2.6.1
+
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
 reportlab==4.4.10
