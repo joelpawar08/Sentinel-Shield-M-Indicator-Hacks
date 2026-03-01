@@ -20,7 +20,7 @@ import axios from "axios";
 import Navbar from "../components/Navbar";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const DANGER_API    = "http://192.168.0.169:8000/danger";
+const DANGER_API    = "https://sentinel-shield-m-indicator-hacks.onrender.com/danger";
 const DANGER_RADIUS = 5000;
 const { height: SH } = Dimensions.get("window");
 
