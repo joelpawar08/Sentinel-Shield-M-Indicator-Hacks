@@ -20,8 +20,7 @@ TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 # ==============================
 
 TARGET_NUMBERS = [
-    os.getenv("ALERT_PHONE_1"),
-    os.getenv("ALERT_PHONE_2")
+    os.getenv("ALERT_PHONE_1")
   
 
 ]
