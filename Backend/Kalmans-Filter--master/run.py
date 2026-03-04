@@ -13,7 +13,7 @@ from orange_detector import OrangeDetector
 from kalmanfilter import KalmanFilter
 
 
-cap = cv2.VideoCapture("ball.mp4")
+cap = cv2.VideoCapture("miss.mp4")
 
 od = OrangeDetector()
 kf = KalmanFilter()

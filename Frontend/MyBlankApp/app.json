@@ -21,10 +21,16 @@
         "backgroundImage": "./assets/icon.png",
         "monochromeImage": "./assets/icon.png"
       },
-      "predictiveBackGestureEnabled": false
+      "package": "com.joelpawar.DISHA"
     },
     "web": {
       "favicon": "./assets/icon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8155db33-2e04-49fc-b679-1ec1bf26876e"
+      }
+    },
+    "owner": "joelpawar"
   }
 }

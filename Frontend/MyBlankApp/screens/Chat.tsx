@@ -19,10 +19,8 @@ import Navbar from "../components/Navbar";
 
 const { width: SW } = Dimensions.get("window");
 
-// ── Backend URL ────────────────────────────────────────────────────────────────
 const API_URL = "https://sentinel-shield-m-indicator-hacks.onrender.com/ai/evacuation-tips";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
 type Role = "user" | "assistant";
 
 interface Message {
@@ -33,28 +31,21 @@ interface Message {
   loading?: boolean;
 }
 
-// ── API Call ───────────────────────────────────────────────────────────────────
-// tips.py expects: prompt (Form), image (File) — multipart/form-data
-// React Native supports { uri, name, type } object in FormData — no Blob/ArrayBuffer needed
 async function callBackend(
   userText: string,
   imageUri?: string,
   imageMime?: string
 ): Promise<string> {
-
   const formData = new FormData();
-
   formData.append("prompt", userText || "Analyze this situation and give emergency advice.");
 
   if (imageUri) {
-    // React Native native way — append file via uri object (no Blob conversion)
     formData.append("image", {
       uri:  imageUri,
       name: "photo.jpg",
       type: imageMime || "image/jpeg",
     } as any);
   } else {
-    // No image attached — fetch a real tiny placeholder image from the web
     formData.append("image", {
       uri:  "https://via.placeholder.com/10x10.jpg",
       name: "placeholder.jpg",
@@ -64,10 +55,7 @@ async function callBackend(
 
   const response = await fetch(API_URL, {
     method: "POST",
-    // Let React Native set Content-Type with correct boundary automatically
-    headers: {
-      Accept: "application/json",
-    },
+    headers: { Accept: "application/json" },
     body: formData,
   });
 
@@ -77,47 +65,40 @@ async function callBackend(
   }
 
   const data = await response.json();
-
-  // tips.py returns: { "ai_evacuation_advice": "..." }
   if (data?.ai_evacuation_advice) return data.ai_evacuation_advice;
-  if (typeof data === "string")   return data;
-  if (data?.response)             return data.response;
-  if (data?.message)              return data.message;
-
+  if (typeof data === "string") return data;
+  if (data?.response) return data.response;
+  if (data?.message) return data.message;
   return JSON.stringify(data);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id:   "0",
+      id: "0",
       role: "assistant",
-      text: "Hi! I'm DISHA, your emergency assistant. Describe a situation or attach an image for evacuation guidance. 🚨",
+      text: "Good morning! I'm your emergency assistant. What's your situation today? Don't be afraid to ask something personal.",
     },
   ]);
-  const [input,       setInput]       = useState("");
-  const [pickedImage, setPickedImage] = useState<{
-    uri: string; mime: string;
-  } | null>(null);
+  const [input, setInput] = useState("");
+  const [pickedImage, setPickedImage] = useState<{ uri: string; mime: string } | null>(null);
   const [sending, setSending] = useState(false);
-  const scrollRef             = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
-  // ── Pick image ───────────────────────────────────────────────────────────────
   const pickImage = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      base64:     false,   // we use URI directly — no base64 needed
-      quality:    0.7,
+      base64: false,
+      quality: 0.7,
     });
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       setPickedImage({
-        uri:  asset.uri,
+        uri: asset.uri,
         mime: asset.mimeType || "image/jpeg",
       });
     }
@@ -125,23 +106,22 @@ export default function ChatScreen() {
 
   const removeImage = () => setPickedImage(null);
 
-  // ── Send ─────────────────────────────────────────────────────────────────────
   const send = useCallback(async () => {
     const text = input.trim();
     if (!text && !pickedImage) return;
     if (sending) return;
 
     const userMsg: Message = {
-      id:       Date.now().toString(),
-      role:     "user",
-      text:     text || "📎 Image sent for analysis",
+      id: Date.now().toString(),
+      role: "user",
+      text: text || "Image sent for analysis",
       imageUri: pickedImage?.uri,
     };
 
     const loadingMsg: Message = {
-      id:      Date.now().toString() + "_load",
-      role:    "assistant",
-      text:    "",
+      id: Date.now().toString() + "_load",
+      role: "assistant",
+      text: "",
       loading: true,
     };
 
@@ -161,9 +141,9 @@ export default function ChatScreen() {
       setMessages((m) => [
         ...m.filter((x) => x.id !== loadingMsg.id),
         {
-          id:   Date.now().toString() + "_err",
+          id: Date.now().toString() + "_err",
           role: "assistant",
-          text: `⚠️ ${err?.message || "Something went wrong. Please try again."}`,
+          text: `Error: ${err?.message || "Something went wrong. Please try again."}`,
         },
       ]);
     } finally {
@@ -172,7 +152,6 @@ export default function ChatScreen() {
     }
   }, [input, pickedImage, sending]);
 
-  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={s.root}>
       <KeyboardAvoidingView
@@ -180,80 +159,45 @@ export default function ChatScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={0}
       >
-
-        {/* HEADER */}
-        <View style={s.header}>
-          <View style={s.headerDot}>
-            <Text style={s.headerDotText}>D</Text>
-          </View>
-          <Text style={s.headerTitle}>DISHA Assistant</Text>
-          <View style={s.onlinePill}>
-            <View style={s.onlineDot} />
-            <Text style={s.onlineText}>Online</Text>
-          </View>
-        </View>
-
-        {/* CHAT AREA */}
         <ScrollView
           ref={scrollRef}
           style={s.chatScroll}
           contentContainerStyle={s.chatContent}
           showsVerticalScrollIndicator={false}
-          onContentSizeChange={() =>
-            scrollRef.current?.scrollToEnd({ animated: true })
-          }
+          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
           {messages.map((msg) => (
-            <View
-              key={msg.id}
-              style={[
-                s.bubbleWrap,
-                msg.role === "user" ? s.bubbleWrapUser : s.bubbleWrapBot,
-              ]}
-            >
-              {msg.role === "assistant" && (
-                <View style={s.avatar}>
-                  <Text style={s.avatarEmoji}>🤖</Text>
-                </View>
+            <View key={msg.id}>
+              {msg.role === "assistant" && !msg.loading && (
+                <Text style={s.assistantLabel}>DISHA Assistant</Text>
               )}
 
-              <View style={[s.bubble, msg.role === "user" ? s.bubbleUser : s.bubbleBot]}>
-                {msg.imageUri && (
-                  <Image
-                    source={{ uri: msg.imageUri }}
-                    style={s.bubbleImage}
-                    resizeMode="cover"
-                  />
-                )}
-                {msg.loading ? (
-                  <View style={s.loadingRow}>
-                    <ActivityIndicator size="small" color="#007AFF" />
-                    <Text style={s.loadingText}>Analyzing…</Text>
-                  </View>
-                ) : (
-                  <Text style={[s.bubbleText, msg.role === "user" ? s.bubbleTextUser : s.bubbleTextBot]}>
-                    {msg.text}
-                  </Text>
-                )}
+              <View style={[s.bubbleWrap, msg.role === "user" ? s.bubbleWrapUser : s.bubbleWrapBot]}>
+                <View style={[s.bubble, msg.role === "user" ? s.bubbleUser : s.bubbleBot]}>
+                  {msg.imageUri && (
+                    <Image source={{ uri: msg.imageUri }} style={s.bubbleImage} resizeMode="cover" />
+                  )}
+                  {msg.loading ? (
+                    <View style={s.loadingRow}>
+                      <ActivityIndicator size="small" color="#8E8E93" />
+                    </View>
+                  ) : (
+                    <Text style={[s.bubbleText, msg.role === "user" ? s.bubbleTextUser : s.bubbleTextBot]}>
+                      {msg.text}
+                    </Text>
+                  )}
+                </View>
               </View>
-
-              {msg.role === "user" && (
-                <View style={[s.avatar, s.avatarUser]}>
-                  <Text style={s.avatarEmoji}>👤</Text>
-                </View>
-              )}
             </View>
           ))}
         </ScrollView>
 
-        {/* INPUT AREA */}
         <View style={s.inputArea}>
           {pickedImage && (
             <View style={s.previewStrip}>
               <Image source={{ uri: pickedImage.uri }} style={s.previewThumb} resizeMode="cover" />
               <View style={s.previewMeta}>
                 <Text style={s.previewLabel}>Image attached</Text>
-                <Text style={s.previewSub}>Ready to send for analysis</Text>
               </View>
               <TouchableOpacity style={s.removeBtn} onPress={removeImage}>
                 <Text style={s.removeBtnText}>✕</Text>
@@ -263,14 +207,14 @@ export default function ChatScreen() {
 
           <View style={s.inputRow}>
             <TouchableOpacity style={s.attachBtn} onPress={pickImage}>
-              <Text style={s.attachBtnText}>📎</Text>
+              <Text style={s.attachIcon}>📎</Text>
             </TouchableOpacity>
 
             <TextInput
               style={s.textInput}
               value={input}
               onChangeText={setInput}
-              placeholder="Describe the emergency situation…"
+              placeholder="Type your message..."
               placeholderTextColor="#B0B8C8"
               multiline
               maxLength={1000}
@@ -282,14 +226,10 @@ export default function ChatScreen() {
               onPress={send}
               disabled={sending || (!input.trim() && !pickedImage)}
             >
-              {sending
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={s.sendBtnText}>➤</Text>
-              }
+              {sending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={s.sendIcon}>→</Text>}
             </TouchableOpacity>
           </View>
         </View>
-
       </KeyboardAvoidingView>
 
       <Navbar />
@@ -297,113 +237,163 @@ export default function ChatScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#F0F3FA" },
-  kav:  { flex: 1 },
+  root: { flex: 1, backgroundColor: "#F8F9FB" },
+  kav: { flex: 1 },
 
-  header: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: "#fff",
-    paddingHorizontal: 16, paddingVertical: 13,
-    borderBottomWidth: 1, borderBottomColor: "#EEF0F5",
-    gap: 10, elevation: 3,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 4,
-  },
-  headerDot: {
-    width: 36, height: 36, borderRadius: 12,
-    backgroundColor: "#1A237E",
-    justifyContent: "center", alignItems: "center",
-  },
-  headerDotText: { color: "#fff", fontWeight: "900", fontSize: 16 },
-  headerTitle:   { flex: 1, fontSize: 16, fontWeight: "800", color: "#111", letterSpacing: -0.3 },
-  onlinePill: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: "#EDFDF4", borderRadius: 20,
-    paddingHorizontal: 10, paddingVertical: 4, gap: 5,
-  },
-  onlineDot:  { width: 7, height: 7, borderRadius: 4, backgroundColor: "#34C759" },
-  onlineText: { fontSize: 11, fontWeight: "700", color: "#34C759" },
+  chatScroll: { flex: 1 },
+  chatContent: { padding: 20, paddingTop: 20, paddingBottom: 20 },
 
-  chatScroll:  { flex: 1 },
-  chatContent: { padding: 14, gap: 10, paddingBottom: 6 },
-
-  bubbleWrap:     { flexDirection: "row", alignItems: "flex-end", gap: 8, maxWidth: SW * 0.85 },
-  bubbleWrapUser: { alignSelf: "flex-end",  flexDirection: "row-reverse" },
-  bubbleWrapBot:  { alignSelf: "flex-start" },
-
-  avatar: {
-    width: 32, height: 32, borderRadius: 10,
-    backgroundColor: "#EEF2FF",
-    justifyContent: "center", alignItems: "center", flexShrink: 0,
+  assistantLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1C1C1E",
+    marginBottom: 12,
+    marginTop: 24,
+    letterSpacing: -0.2,
   },
-  avatarUser:  { backgroundColor: "#007AFF1A" },
-  avatarEmoji: { fontSize: 16 },
+
+  bubbleWrap: {
+    marginBottom: 16,
+  },
+  bubbleWrapUser: { alignItems: "flex-end" },
+  bubbleWrapBot: { alignItems: "flex-start" },
 
   bubble: {
-    borderRadius: 18, padding: 12, maxWidth: SW * 0.7,
-    elevation: 1, shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3,
+    borderRadius: 24,
+    padding: 18,
+    maxWidth: SW * 0.75,
   },
-  bubbleUser:     { backgroundColor: "#007AFF", borderBottomRightRadius: 4 },
-  bubbleBot:      { backgroundColor: "#fff",    borderBottomLeftRadius: 4  },
-  bubbleText:     { fontSize: 14, lineHeight: 21 },
-  bubbleTextUser: { color: "#fff" },
-  bubbleTextBot:  { color: "#111" },
-  bubbleImage:    { width: "100%", height: 160, borderRadius: 10, marginBottom: 8 },
+  bubbleUser: {
+    backgroundColor: "#E8EDF5",
+  },
+  bubbleBot: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  bubbleText: {
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: -0.3,
+  },
+  bubbleTextUser: {
+    color: "#1C1C1E",
+    fontWeight: "500",
+  },
+  bubbleTextBot: {
+    color: "#6C757D",
+    fontWeight: "400",
+  },
+  bubbleImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
 
-  loadingRow:  { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 2 },
-  loadingText: { fontSize: 13, color: "#007AFF", fontWeight: "600" },
+  loadingRow: {
+    paddingVertical: 8,
+  },
 
   inputArea: {
-    backgroundColor: "#fff",
-    paddingHorizontal: 12, paddingTop: 10, paddingBottom: 10,
-    borderTopWidth: 1, borderTopColor: "#EEF0F5",
-    elevation: 6, shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.05, shadowRadius: 6,
-    marginHorizontal: 10, marginBottom: 8, borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 90,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 10,
   },
 
   previewStrip: {
-    flexDirection: "row", alignItems: "center",
-    backgroundColor: "#F0F6FF", borderRadius: 12,
-    padding: 8, marginBottom: 8, gap: 10,
-    borderWidth: 1, borderColor: "#D0E4FF",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F5F5F7",
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 10,
+    gap: 10,
   },
-  previewThumb:  { width: 44, height: 44, borderRadius: 8 },
-  previewMeta:   { flex: 1 },
-  previewLabel:  { fontSize: 12, fontWeight: "700", color: "#007AFF" },
-  previewSub:    { fontSize: 10, color: "#888", marginTop: 1 },
+  previewThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+  },
+  previewMeta: {
+    flex: 1,
+  },
+  previewLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1C1C1E",
+  },
   removeBtn: {
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: "#FF3B3020",
-    justifyContent: "center", alignItems: "center",
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#FF3B3015",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  removeBtnText: { fontSize: 11, color: "#FF3B30", fontWeight: "800" },
+  removeBtnText: {
+    fontSize: 13,
+    color: "#FF3B30",
+    fontWeight: "700",
+  },
 
-  inputRow:  { flexDirection: "row", alignItems: "flex-end", gap: 8 },
-  attachBtn: {
-    width: 40, height: 40, borderRadius: 12,
-    backgroundColor: "#F0F3FA",
-    justifyContent: "center", alignItems: "center", flexShrink: 0,
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
-  attachBtnText: { fontSize: 18 },
+  attachBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F5F5F7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  attachIcon: {
+    fontSize: 18,
+  },
 
   textInput: {
-    flex: 1, minHeight: 40, maxHeight: 100,
-    backgroundColor: "#F4F6FB", borderRadius: 14,
-    paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 14, color: "#111", fontWeight: "500",
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 100,
+    backgroundColor: "#F5F5F7",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: "#1C1C1E",
+    fontWeight: "400",
+    letterSpacing: -0.2,
   },
 
   sendBtn: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: "#007AFF",
-    justifyContent: "center", alignItems: "center", flexShrink: 0,
-    elevation: 3, shadowColor: "#007AFF",
-    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.35, shadowRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  sendBtnDisabled: { backgroundColor: "#C8D6E8", elevation: 0, shadowOpacity: 0 },
-  sendBtnText:     { color: "#fff", fontSize: 16, fontWeight: "800" },
+  sendBtnDisabled: {
+    backgroundColor: "#D0D8E8",
+  },
+  sendIcon: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
 });
