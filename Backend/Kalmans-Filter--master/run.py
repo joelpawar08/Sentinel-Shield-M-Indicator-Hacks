@@ -13,7 +13,7 @@ from orange_detector import OrangeDetector
 from kalmanfilter import KalmanFilter
 
 
-cap = cv2.VideoCapture("ball.mp4")
+cap = cv2.VideoCapture("miss.mp4")
 
 od = OrangeDetector()
 kf = KalmanFilter()
@@ -152,7 +152,7 @@ location_label.pack(pady=10)
 
 def send_alert():
     try:
-        requests.post("http://127.0.0.1:8000/danger")
+        requests.post("https://sentinel-shield-m-indicator-hacks.onrender.com/danger")
     except:
         pass
 
